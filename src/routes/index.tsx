@@ -33,7 +33,10 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "index,follow,max-image-preview:large" },
+      { property: "og:url", content: "https://consulta.explicon.com.br/" },
     ],
+    links: [{ rel: "canonical", href: "https://consulta.explicon.com.br/" }],
   }),
   component: Home,
 });
