@@ -12,6 +12,16 @@ interface Sugestao {
   descricao: string | null;
 }
 
+interface SugestaoV2 {
+  valor?: string | null;
+  tipo?: string | null;
+  descricao?: string | null;
+  item_lc?: string | null;
+  nbs?: string | null;
+  descricao_lc?: string | null;
+  descricao_nbs?: string | null;
+}
+
 function normalizar(valor: string | null | undefined) {
   return (valor ?? "")
     .normalize("NFD")
@@ -109,8 +119,17 @@ export function SearchBar({
 
   const sugestoes: Sugestao[] = useMemo(
     () =>
-      (data?.sugestoes ?? [])
-        .map((s) => classificarSugestao(debounced, s))
+      ((data?.sugestoes ?? []) as SugestaoV2[])
+        .map((s) => {
+          if (s.tipo && s.valor) {
+            return {
+              tipo: s.tipo,
+              valor: s.valor,
+              descricao: s.descricao ?? null,
+            };
+          }
+          return classificarSugestao(debounced, s);
+        })
         .filter(
           (s, indice, todos) =>
             todos.findIndex((outro) => outro.tipo === s.tipo && outro.valor === s.valor) === indice,
