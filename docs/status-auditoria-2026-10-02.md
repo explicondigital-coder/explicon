@@ -4,8 +4,8 @@ Data: 2026-10-02
 
 ## Progresso estimado
 
-**Auditoria e preparação técnica concluídas: 93%**  
-**Pendente: 7%**
+**Auditoria e preparação técnica concluídas: 94%**  
+**Pendente: 6%**
 
 A porcentagem representa o trabalho de auditoria, correção preparada, testes e prontidão para integração. Não representa deploy concluído em produção.
 
@@ -15,7 +15,10 @@ A porcentagem representa o trabalho de auditoria, correção preparada, testes e
 - 1.157/1.157 registros auditados estruturalmente.
 - 1.157 IDs únicos.
 - 980 registros com NBS.
-- 177 registros sem NBS classificados estruturalmente.
+- 177 registros sem NBS auditados e classificados estruturalmente:
+  - 80 como tributação integral/padrão;
+  - 96 como tratamentos com redução informada;
+  - 1 como regime específico financeiro.
 - 0 duplicidades semânticas reais.
 - 0 conflitos CST/cClassTrib para o mesmo Item + NBS.
 - 0 divergências CST x prefixo cClassTrib.
@@ -63,7 +66,7 @@ A porcentagem representa o trabalho de auditoria, correção preparada, testes e
 - assertions de pré-deploy criadas.
 
 ### Testes e CI
-- testes fiscais automatizados;
+- testes fiscais automatizados, incluindo Contabilidade, Fisioterapia, categorias 99.*, variantes sem NBS e classificação dos tratamentos adicionais;
 - TypeScript check;
 - lint semântico;
 - build de produção;
@@ -90,7 +93,7 @@ A porcentagem representa o trabalho de auditoria, correção preparada, testes e
 - assertions fiscais;
 - checklist responsivo e acessibilidade.
 
-## 7% restante
+## 6% restante
 
 ### 1. Corrigir 5 valores ps_onerosa = "advocacia"
 A fonte original não está disponível na Biblioteca atual.
@@ -139,7 +142,7 @@ Não impede o cartão principal, mas impede rastreabilidade legal completa.
 
 Tudo o que pode ser adiantado com segurança **sem gastar créditos do Lovable e sem alterar produção** foi levado a um estado de integração/teste.
 
-Os 7% restantes dependem principalmente de:
+Os 6% restantes dependem principalmente de:
 - fonte original/validação externa;
 - ambiente sincronizado;
 - aplicação controlada de migrations;
