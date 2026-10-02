@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SiteHeader, SiteFooter } from "@/components/SiteHeader";
 import { ResultGroup } from "@/components/ResultGroup";
 import { DetailPanel } from "@/components/DetailPanel";
-import { agruparPorItemLc, slugParaItemLc, type Correlacao } from "@/lib/correlacoes";
+import { agruparPorItemLc, rotuloCodigoItem, slugParaItemLc, type Correlacao } from "@/lib/correlacoes";
 import { obterItemLc } from "@/lib/correlacoes.functions";
 
 export const Route = createFileRoute("/item/$slug")({
@@ -12,8 +12,9 @@ export const Route = createFileRoute("/item/$slug")({
   head: ({ params, loaderData }) => {
     const itemLc = slugParaItemLc(params.slug);
     const descricao = loaderData?.registros?.[0]?.descricao_lc ?? "Correlação tributária";
-    const title = `Item LC ${itemLc} — ${descricao} | Explicon`;
-    const description = `Correlação do Item LC 116 ${itemLc} (${descricao}) com NBS, INDOP, CClassTrib e base legal.`;
+    const rotulo = rotuloCodigoItem(itemLc);
+    const title = `${rotulo} ${itemLc} — ${descricao} | Explicon`;
+    const description = `Classificação ${itemLc} (${descricao}) com NBS, INDOP, CST e cClassTrib no Explicon Tax Link.`;
     return {
       meta: [
         { title },
@@ -56,12 +57,12 @@ function ItemLcPagina() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <nav className="mb-4 text-sm text-muted-foreground">
           <Link to="/" className="hover:text-foreground">Início</Link>{" "}
-          / <span className="text-foreground">Item LC {itemLc}</span>
+          / <span className="text-foreground">{rotuloCodigoItem(itemLc)} {itemLc}</span>
         </nav>
 
         {grupos.length === 0 ? (
           <p className="py-20 text-center text-muted-foreground">
-            Nenhuma correlação encontrada para o Item LC {itemLc}.
+            Nenhuma correlação encontrada para {rotuloCodigoItem(itemLc)} {itemLc}.
           </p>
         ) : (
           <div className="space-y-8">
