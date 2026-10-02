@@ -1,0 +1,128 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
+import { z } from "zod";
+import { SearchBar } from "@/components/SearchBar";
+import { SiteHeader, SiteFooter } from "@/components/SiteHeader";
+import { ResultGroup } from "@/components/ResultGroup";
+import { DetailPanel } from "@/components/DetailPanel";
+import { Button } from "@/components/ui/button";
+import { agruparPorItemLc, type Correlacao } from "@/lib/correlacoes";
+import { buscarCorrelacoes } from "@/lib/correlacoes.functions";
+import { useLocalList } from "@/hooks/useLocalList";
+import { LeadForm } from "@/components/LeadForm";
+
+const searchSchema = z.object({
+  q: z.string().catch(""),
+  pagina: z.number().int().min(1).catch(1),
+});
+
+export const Route = createFileRoute("/busca")({
+  validateSearch: searchSchema,
+  head: () => ({
+    meta: [
+      { title: "Resultados da consulta — Explicon Consulta Tributária" },
+      {
+        name: "description",
+        content:
+          "Resultados de correlação tributária entre Item LC 116, NBS, INDOP e CClassTrib agrupados por item.",
+      },
+      { property: "og:title", content: "Resultados da consulta — Explicon" },
+      {
+        property: "og:description",
+        content: "Correlações tributárias agrupadas por Item LC 116, com NBS, INDOP e CClassTrib.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
+  component: Busca,
+});
+
+function Busca() {
+  const { q, pagina } = Route.useSearch();
+  const [selecionado, setSelecionado] = useState<Correlacao | null>(null);
+  const [painelAberto, setPainelAberto] = useState(false);
+  const favoritos = useLocalList<Correlacao>("explicon-favoritos", 50);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["busca", q, pagina],
+    queryFn: () => buscarCorrelacoes({ data: { q, pagina, porPagina: 50 } }),
+    staleTime: 60_000,
+  });
+
+  const grupos = agruparPorItemLc(data?.registros ?? []);
+  const total = data?.total ?? 0;
+  const totalPaginas = Math.max(1, Math.ceil(total / 50));
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+        <SearchBar valorInicial={q} tamanho="compacto" />
+
+        <p className="mt-4 text-sm text-muted-foreground">
+          {isLoading ? "Consultando..." : `${total} registro(s) encontrado(s)`}
+          {q ? ` para “${q}”` : ""}
+        </p>
+
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="size-6 animate-spin text-brand" />
+          </div>
+        ) : grupos.length === 0 ? (
+          <div className="mt-12 rounded-2xl border border-dashed border-border p-10 text-center">
+            <p className="font-medium text-foreground">Nenhum resultado encontrado</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Tente outro termo, código NBS ou Item LC.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 space-y-5">
+            {grupos.map((g, i) => (
+              <ResultGroup
+                key={g.itemLc + i}
+                grupo={g}
+                indice={i}
+                favoritos={favoritos.itens.map((f) => f.id)}
+                onFavoritar={(c) => favoritos.adicionar(c, (x) => x.id)}
+                onVerDetalhes={(c) => {
+                  setSelecionado(c);
+                  setPainelAberto(true);
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        <LeadForm termoBuscado={q} className="mt-10" />
+
+        {totalPaginas > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-3">
+            <Button asChild variant="outline" size="sm" disabled={pagina <= 1}>
+              <Link to="/busca" search={{ q, pagina: Math.max(1, pagina - 1) }}>
+                Anterior
+              </Link>
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Página {pagina} de {totalPaginas}
+            </span>
+            <Button asChild variant="outline" size="sm" disabled={pagina >= totalPaginas}>
+              <Link to="/busca" search={{ q, pagina: Math.min(totalPaginas, pagina + 1) }}>
+                Próxima
+              </Link>
+            </Button>
+          </div>
+        )}
+      </main>
+      <SiteFooter />
+      <DetailPanel
+        correlacao={selecionado}
+        aberto={painelAberto}
+        onOpenChange={setPainelAberto}
+      />
+    </div>
+  );
+}
