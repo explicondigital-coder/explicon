@@ -51,6 +51,7 @@ BEGIN
     SELECT
       item_lc,
       min(descricao_lc) AS descricao_lc,
+      min(nbs) FILTER (WHERE nbs IS NOT NULL) AS primeiro_nbs,
       count(*) AS qtd
     FROM filtrado
     GROUP BY item_lc
@@ -60,7 +61,7 @@ BEGIN
     FROM itens
     ORDER BY
       CASE WHEN _ordenar = 'alfabetica' THEN descricao_lc END NULLS LAST,
-      CASE WHEN _ordenar = 'nbs' THEN NULL END,
+      CASE WHEN _ordenar = 'nbs' THEN primeiro_nbs END NULLS LAST,
       item_lc NULLS LAST
     LIMIT lim OFFSET off
   ),
