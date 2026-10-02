@@ -42,8 +42,24 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Explicon Tax Link",
+    url: "https://consulta.explicon.com.br/",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://consulta.explicon.com.br/busca?q={search_term_string}&pagina=1",
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
       <SiteHeader />
       <main className="flex flex-1 items-center justify-center px-4 py-16 sm:px-6">
         <motion.div
