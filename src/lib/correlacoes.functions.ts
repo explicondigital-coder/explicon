@@ -130,7 +130,23 @@ export const listarItensLc = createServerFn({ method: "GET" }).handler(async () 
   return { itens: [...mapa].map(([itemLc, descricao]) => ({ itemLc, descricao })) };
 });
 
-export const obterOpcoesFiltro = createServerFn({ method: "GET" }).handler(async () => {
+type FiltroRow = {
+  item_lc: string | null;
+  nbs: string | null;
+  indop: string | null;
+  cclasstrib: string | null;
+  base_legal: string | null;
+};
+
+type OpcoesFiltro = {
+  itensLc: string[];
+  nbs: string[];
+  indop: string[];
+  cclasstrib: string[];
+  baseLegal: string[];
+};
+
+export const obterOpcoesFiltro = createServerFn({ method: "GET" }).handler(async (): Promise<OpcoesFiltro> => {
   const { createPublicClient } = await import("./supabase-public.server");
   const supabase = createPublicClient();
   const { data, error } = await supabase
@@ -138,10 +154,13 @@ export const obterOpcoesFiltro = createServerFn({ method: "GET" }).handler(async
     .select("item_lc,nbs,indop,cclasstrib,base_legal")
     .limit(20000);
   if (error) throw new Error(error.message);
-  const unicos = (chave: "item_lc" | "nbs" | "indop" | "cclasstrib" | "base_legal") =>
-    [...new Set((data ?? []).map((r) => r[chave]).filter((v): v is string => Boolean(v)))]
+
+  const linhas = (data ?? []) as FiltroRow[];
+  const unicos = (chave: keyof FiltroRow): string[] =>
+    [...new Set(linhas.map((r) => r[chave]).filter((v): v is string => typeof v === "string" && v.length > 0))]
       .sort()
       .slice(0, 500);
+
   return {
     itensLc: unicos("item_lc"),
     nbs: unicos("nbs"),
