@@ -15,6 +15,7 @@ export const Route = createFileRoute("/item/$slug")({
     const rotulo = rotuloCodigoItem(itemLc);
     const title = `${rotulo} ${itemLc} — ${descricao} | Explicon`;
     const description = `Classificação ${itemLc} (${descricao}) com NBS, INDOP, CST e cClassTrib no Explicon Tax Link.`;
+    const canonical = `https://consulta.explicon.com.br/item/${params.slug}`;
     return {
       meta: [
         { title },
@@ -22,8 +23,10 @@ export const Route = createFileRoute("/item/$slug")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "article" },
+        { property: "og:url", content: canonical },
         { name: "twitter:card", content: "summary_large_image" },
       ],
+      links: [{ rel: "canonical", href: canonical }],
     };
   },
   component: ItemLcPagina,
