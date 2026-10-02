@@ -29,6 +29,12 @@ export interface SeparacaoCorrelacoes {
   tratamentosAdicionais: Correlacao[];
 }
 
+export type TipoTratamentoAdicional =
+  | "tributacao_integral"
+  | "reducao"
+  | "regime_especifico"
+  | "outro";
+
 export type TipoCodigoItem = "lc116" | "interno" | "nao_padronizado" | "ausente";
 
 export const ORDENACOES = [
@@ -78,6 +84,36 @@ export function agruparPorItemLc(registros: Correlacao[]): GrupoItemLc[] {
     }
   }
   return [...grupos.values()];
+}
+
+export function classificarTratamentoAdicional(registro: Correlacao): TipoTratamentoAdicional {
+  const cst = registro.cst?.trim();
+  const cclasstrib = registro.cclasstrib?.trim();
+  const reducao = registro.reducao_aliquota?.trim();
+
+  if (cst === "000" && cclasstrib === "000001" && !reducao) {
+    return "tributacao_integral";
+  }
+  if (cst === "820" || cclasstrib?.startsWith("820")) {
+    return "regime_especifico";
+  }
+  if (reducao) {
+    return "reducao";
+  }
+  return "outro";
+}
+
+export function rotuloTratamentoAdicional(registro: Correlacao): string {
+  switch (classificarTratamentoAdicional(registro)) {
+    case "tributacao_integral":
+      return "Tratamento padrão — verificar aplicabilidade";
+    case "reducao":
+      return "Tratamento específico com redução — verificar aplicabilidade";
+    case "regime_especifico":
+      return "Regime específico — verificar aplicabilidade";
+    default:
+      return "Tratamento tributário adicional — verificar aplicabilidade";
+  }
 }
 
 export function separarCorrelacoesPorNbs(registros: Correlacao[]): SeparacaoCorrelacoes {
