@@ -25,10 +25,14 @@ Aplicar nesta ordem:
 4. `20261002_busca_paginada_por_item.sql`
 5. `20261002_autocomplete_relevancia.sql`
 6. `20261002_fix_item_lc_advocacia_17_14.sql` somente após validação específica
+7. `20261002_integridade_codigos.sql` somente depois da correção da Advocacia
 
 Depois executar:
 - `supabase/audits/tax_link_quality.sql`
 - `supabase/audits/security_post_migration.sql`
+- `supabase/audits/predeploy_assertions.sql`
+
+Antes de continuar, revisar o GitHub Issue #2 sobre os cinco registros `ps_onerosa = advocacia`. A migration de integridade normaliza apenas `s` → `S` e deliberadamente não corrige esses cinco valores sem fonte.
 
 ### Fase 3 — Testes funcionais
 Validar pelo menos:
