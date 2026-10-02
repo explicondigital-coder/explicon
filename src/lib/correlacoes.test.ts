@@ -32,7 +32,7 @@ function criar(parcial: Partial<Correlacao> & Pick<Correlacao, "id">): Correlaca
 }
 
 describe("Tax Link — organização fiscal dos resultados", () => {
-  test("mantém múltiplos NBS do mesmo Item LC como correlações separadas", () => {
+  test("contabilidade mantém os 3 NBS como cartões separados", () => {
     const registros = [
       criar({ id: "1", nbs: "1.1302.21.00", descricao_nbs: "Serviços de contabilidade" }),
       criar({ id: "2", nbs: "1.1302.22.00", descricao_nbs: "Serviços de escrituração mercantil" }),
@@ -41,11 +41,57 @@ describe("Tax Link — organização fiscal dos resultados", () => {
 
     const grupos = agruparPorItemLc(registros);
     expect(grupos).toHaveLength(1);
+    expect(grupos[0]?.itemLc).toBe("17.19");
     expect(grupos[0]?.registros).toHaveLength(3);
 
     const separados = separarCorrelacoesPorNbs(grupos[0]!.registros);
-    expect(separados.correlacoesPrincipais).toHaveLength(3);
+    expect(separados.correlacoesPrincipais.map((r) => r.nbs)).toEqual([
+      "1.1302.21.00",
+      "1.1302.22.00",
+      "1.1302.23.00",
+    ]);
     expect(separados.tratamentosAdicionais).toHaveLength(0);
+  });
+
+  test("fisioterapia separa 2 NBS confirmados de 1 tratamento adicional", () => {
+    const registros = [
+      criar({
+        id: "fisio",
+        item_lc: "04.08",
+        nbs: "1.2301.92.00",
+        descricao_nbs: "Serviços de fisioterapia",
+        cclasstrib: "200029",
+        cst: "200",
+        reducao_aliquota: "Redução de Alíquota: 60%",
+        local_incidencia_ibs: "local da prestação",
+      }),
+      criar({
+        id: "saude-outros",
+        item_lc: "04.08",
+        nbs: "1.2301.99.00",
+        descricao_nbs: "Outros serviços de saúde humana não classificados em subposições anteriores",
+        cclasstrib: "200029",
+        cst: "200",
+        reducao_aliquota: "Redução de Alíquota: 60%",
+        local_incidencia_ibs: "local da prestação",
+      }),
+      criar({
+        id: "regra-adicional",
+        item_lc: "04.08",
+        nbs: null,
+        descricao_nbs: null,
+        indop: "030102",
+        cclasstrib: "200029",
+        cst: "200",
+        reducao_aliquota: "Redução de Alíquota: 60%",
+        local_incidencia_ibs: "local da prestação",
+      }),
+    ];
+
+    const separados = separarCorrelacoesPorNbs(registros);
+    expect(separados.correlacoesPrincipais).toHaveLength(2);
+    expect(separados.tratamentosAdicionais).toHaveLength(1);
+    expect(separados.tratamentosAdicionais[0]?.id).toBe("regra-adicional");
   });
 
   test("registro sem NBS nunca entra como correlação NBS confirmada", () => {
@@ -84,5 +130,32 @@ describe("Tax Link — organização fiscal dos resultados", () => {
 
     expect(classificarCodigoItem("advocacia")).toBe("nao_padronizado");
     expect(classificarCodigoItem(null)).toBe("ausente");
+  });
+
+  test("variações sem NBS com descrições distintas não são tratadas como duplicatas de apresentação", () => {
+    const registros = [
+      criar({
+        id: "residencial",
+        item_lc: "99.03.02",
+        nbs: null,
+        descricao_lc: "Cessão Onerosa de Bens Imóveis",
+        descricao_nbs: "Cessão Onerosa de Bens Imóveis residenciais",
+        cclasstrib: "200027",
+        reducao_aliquota: "Redução de Alíquota: 70%",
+      }),
+      criar({
+        id: "nao-residencial",
+        item_lc: "99.03.02",
+        nbs: null,
+        descricao_lc: "Cessão Onerosa de Bens Imóveis",
+        descricao_nbs: "Cessão Onerosa de Bens Imóveis não residenciais",
+        cclasstrib: "200027",
+        reducao_aliquota: "Redução de Alíquota: 70%",
+      }),
+    ];
+
+    const separados = separarCorrelacoesPorNbs(registros);
+    expect(separados.tratamentosAdicionais).toHaveLength(2);
+    expect(new Set(separados.tratamentosAdicionais.map((r) => r.descricao_nbs)).size).toBe(2);
   });
 });
