@@ -25,6 +25,7 @@ export const Route = createFileRoute("/item/$slug")({
         { property: "og:type", content: "article" },
         { property: "og:url", content: canonical },
         { name: "twitter:card", content: "summary_large_image" },
+        { name: "robots", content: "index,follow,max-image-preview:large" },
       ],
       links: [{ rel: "canonical", href: canonical }],
     };
