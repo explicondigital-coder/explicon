@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Loader2 } from "lucide-react";
@@ -10,6 +10,64 @@ interface Sugestao {
   valor: string;
   tipo: string;
   descricao: string | null;
+}
+
+function normalizar(valor: string | null | undefined) {
+  return (valor ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+export function classificarSugestao(
+  termo: string,
+  s: {
+    item_lc?: string | null;
+    descricao_lc?: string | null;
+    nbs?: string | null;
+    descricao_nbs?: string | null;
+  },
+): Sugestao {
+  const q = normalizar(termo);
+  const nbs = normalizar(s.nbs);
+  const item = normalizar(s.item_lc);
+  const descNbs = normalizar(s.descricao_nbs);
+  const descLc = normalizar(s.descricao_lc);
+
+  if (s.nbs && nbs.includes(q)) {
+    return {
+      valor: s.nbs,
+      tipo: "NBS",
+      descricao: s.descricao_nbs ?? s.descricao_lc ?? null,
+    };
+  }
+
+  if (s.item_lc && item.includes(q)) {
+    return {
+      valor: s.item_lc,
+      tipo: "Item LC",
+      descricao: s.descricao_lc ?? null,
+    };
+  }
+
+  if (s.descricao_nbs && descNbs.includes(q)) {
+    return {
+      valor: s.descricao_nbs,
+      tipo: "Serviço NBS",
+      descricao: s.nbs ? `NBS ${s.nbs}${s.item_lc ? ` · Item LC ${s.item_lc}` : ""}` : s.descricao_lc ?? null,
+    };
+  }
+
+  return {
+    valor: s.descricao_lc || s.descricao_nbs || s.item_lc || s.nbs || termo,
+    tipo: descLc.includes(q) ? "Serviço" : "Correlação",
+    descricao: s.item_lc
+      ? `Item LC ${s.item_lc}${s.nbs ? ` · NBS ${s.nbs}` : ""}`
+      : s.nbs
+        ? `NBS ${s.nbs}`
+        : null,
+  };
 }
 
 export function SearchBar({
@@ -49,17 +107,22 @@ export function SearchBar({
     staleTime: 60_000,
   });
 
-  const sugestoes: Sugestao[] = (data?.sugestoes ?? []).map((s) => ({
-    valor: s.descricao_lc || s.item_lc || s.nbs,
-    tipo: s.item_lc ? `LC ${s.item_lc}` : "NBS",
-    descricao: s.nbs ? `NBS ${s.nbs}${s.descricao_nbs ? ` — ${s.descricao_nbs}` : ""}` : null,
-  }));
+  const sugestoes: Sugestao[] = useMemo(
+    () =>
+      (data?.sugestoes ?? [])
+        .map((s) => classificarSugestao(debounced, s))
+        .filter(
+          (s, indice, todos) =>
+            todos.findIndex((outro) => outro.tipo === s.tipo && outro.valor === s.valor) === indice,
+        ),
+    [data?.sugestoes, debounced],
+  );
 
   function pesquisar(valor: string) {
     const q = valor.trim();
     if (!q) return;
     setAberto(false);
-    navigate({ to: "/busca", search: { q } });
+    navigate({ to: "/busca", search: { q, pagina: 1 } });
   }
 
   const alto = tamanho === "grande";
