@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - feature/tax-link-card-layout
+      - "feature/tax-link-card-layout"
 
 jobs:
   regression-tests:
@@ -29,7 +29,8 @@ jobs:
         run: bunx tsc --noEmit
 
       - name: Semantic lint
-        run: bunx eslint . --rule 'prettier/prettier: off'
+        run: |
+          bunx eslint . --rule "prettier/prettier: off"
 
       - name: Build
         run: bun run build
