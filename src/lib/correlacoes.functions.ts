@@ -11,38 +11,64 @@ const buscaSchema = z.object({
   base_legal: z.string().max(200).nullable().default(null),
   ordenar: z.enum(["item_lc", "nbs", "alfabetica"]).default("item_lc"),
   pagina: z.number().int().min(1).max(500).default(1),
-  porPagina: z.number().int().min(1).max(200).default(50),
+  porPagina: z.number().int().min(1).max(50).default(10),
 });
+
+type BuscaAgrupadaPayload = {
+  total_registros?: number;
+  total_itens?: number;
+  registros?: Correlacao[];
+};
 
 export const buscarCorrelacoes = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => buscaSchema.parse(input))
   .handler(async ({ data }) => {
     const { createPublicClient } = await import("./supabase-public.server");
     const supabase = createPublicClient();
-    const offset = (data.pagina - 1) * data.porPagina;
+    const offsetItens = (data.pagina - 1) * data.porPagina;
+
     const args: Record<string, string | number> = {
       _q: data.q,
       _ordenar: data.ordenar,
-      _limit: data.porPagina,
-      _offset: offset,
+      _limit_itens: data.porPagina,
+      _offset_itens: offsetItens,
     };
     if (data.item_lc) args["_item_lc"] = data.item_lc;
     if (data.nbs) args["_nbs"] = data.nbs;
     if (data.indop) args["_indop"] = data.indop;
     if (data.cclasstrib) args["_cclasstrib"] = data.cclasstrib;
     if (data.base_legal) args["_base_legal"] = data.base_legal;
-    const { data: rows, error } = await supabase.rpc(
-      "buscar_correlacoes",
+
+    const { data: rpcData, error } = await supabase.rpc(
+      "buscar_correlacoes_paginada_v2",
       args as unknown as Record<string, never>,
     );
     if (error) throw new Error(error.message);
-    const lista = (rows ?? []) as Array<Correlacao & { total_count: number }>;
-    const total = lista.length > 0 ? Number(lista[0]!.total_count) : 0;
+
+    const payload = (rpcData ?? {}) as BuscaAgrupadaPayload;
+    const totalRegistros = Number(payload.total_registros ?? 0);
+    const totalItens = Number(payload.total_itens ?? 0);
+    const registros = Array.isArray(payload.registros) ? payload.registros : [];
+
+    // Registra apenas a primeira página de cada pesquisa para evitar duplicidade
+    // quando o usuário navega pelas páginas do mesmo termo.
+    if (data.pagina === 1 && data.q.trim()) {
+      const { error: logError } = await supabase.rpc("registrar_consulta", {
+        _termo: data.q,
+        _resultados: totalRegistros,
+      });
+      if (logError) {
+        console.warn("[Tax Link] Não foi possível registrar a consulta:", logError.message);
+      }
+    }
+
     return {
-      total,
+      total: totalItens,
+      totalItens,
+      totalRegistros,
       pagina: data.pagina,
       porPagina: data.porPagina,
-      registros: lista.map(({ total_count: _t, ...r }) => r as Correlacao),
+      registros,
     };
   });
 
@@ -116,21 +142,28 @@ export const obterOpcoesFiltro = createServerFn({ method: "GET" }).handler(async
 
 export const registrarConsulta = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z.object({ termo: z.string().max(200), resultados: z.number().int().min(0).max(1000000) }).parse(input),
+    z
+      .object({
+        termo: z.string().max(200),
+        resultados: z.number().int().min(0).max(1000000),
+      })
+      .parse(input),
   )
   .handler(async ({ data }) => {
     if (!data.termo.trim()) return { ok: true };
     const { createPublicClient } = await import("./supabase-public.server");
     const supabase = createPublicClient();
-    await supabase.rpc("registrar_consulta", { _termo: data.termo, _resultados: data.resultados });
+    const { error } = await supabase.rpc("registrar_consulta", {
+      _termo: data.termo,
+      _resultados: data.resultados,
+    });
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const obterEstatisticas = createServerFn({ method: "GET" }).handler(async () => {
   const { createPublicClient } = await import("./supabase-public.server");
   const supabase = createPublicClient();
-  // Logs de consulta não são legíveis publicamente: agregamos no servidor e
-  // expomos apenas números/termos agregados.
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const [{ count: totalRegistros }, { count: totalConsultas }] = await Promise.all([
@@ -149,6 +182,7 @@ export const obterEstatisticas = createServerFn({ method: "GET" }).handler(async
     const termo = c.termo.trim().toLowerCase();
     contagem.set(termo, (contagem.get(termo) ?? 0) + 1);
   }
+
   const maisPesquisados = [...contagem.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
