@@ -24,7 +24,7 @@ function Campo({
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {rotulo}
       </p>
-      <p className={`text-sm ${destaque ? "font-semibold text-foreground" : "text-foreground"}`}>
+      <p className={`break-words text-sm ${destaque ? "font-semibold text-foreground" : "text-foreground"}`}>
         {valorOuNaoInformado(valor)}
       </p>
     </div>
@@ -43,8 +43,8 @@ function CorrelacaoCard({
   favorito: boolean;
 }) {
   return (
-    <article className="rounded-2xl border border-border bg-card shadow-soft">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-4 py-4 sm:px-5">
+    <article className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+      <div className="flex flex-col gap-3 border-b border-border/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="border-brand/60 bg-brand/10 text-foreground">
             NBS {valorOuNaoInformado(registro.nbs)}
@@ -54,7 +54,7 @@ function CorrelacaoCard({
           </Badge>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex w-full items-center gap-1 sm:w-auto">
           <Button
             variant="ghost"
             size="icon"
@@ -63,7 +63,7 @@ function CorrelacaoCard({
           >
             <Star className={`size-4 ${favorito ? "fill-brand text-brand" : ""}`} />
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => onVerDetalhes(registro)}>
+          <Button className="flex-1 sm:flex-none" variant="secondary" size="sm" onClick={() => onVerDetalhes(registro)}>
             <Eye className="size-4" />
             Ver detalhes
           </Button>
@@ -120,6 +120,11 @@ function TratamentoAdicionalCard({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
+            {registro.descricao_nbs?.trim() ? (
+              <div className="sm:col-span-2">
+                <Campo rotulo="Descrição / variante associada" valor={registro.descricao_nbs} destaque />
+              </div>
+            ) : null}
             <Campo rotulo="CST" valor={registro.cst} destaque />
             <Campo rotulo="cClassTrib" valor={registro.cclasstrib} destaque />
             <Campo rotulo="Nome cClassTrib" valor={registro.nome_cclasstrib} />
@@ -132,7 +137,7 @@ function TratamentoAdicionalCard({
           </p>
         </div>
 
-        <Button variant="outline" size="sm" onClick={() => onVerDetalhes(registro)}>
+        <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => onVerDetalhes(registro)}>
           <Eye className="size-4" />
           Ver detalhes
         </Button>
