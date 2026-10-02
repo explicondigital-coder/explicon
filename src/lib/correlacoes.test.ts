@@ -2,7 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
   agruparPorItemLc,
   classificarCodigoItem,
+  classificarTratamentoAdicional,
   rotuloCodigoItem,
+  rotuloTratamentoAdicional,
   separarCorrelacoesPorNbs,
   type Correlacao,
 } from "./correlacoes";
@@ -157,5 +159,38 @@ describe("Tax Link — organização fiscal dos resultados", () => {
     const separados = separarCorrelacoesPorNbs(registros);
     expect(separados.tratamentosAdicionais).toHaveLength(2);
     expect(new Set(separados.tratamentosAdicionais.map((r) => r.descricao_nbs)).size).toBe(2);
+  });
+
+  test("classifica tratamentos sem NBS sem inferir além dos campos armazenados", () => {
+    const integral = criar({
+      id: "integral",
+      nbs: null,
+      cst: "000",
+      cclasstrib: "000001",
+      reducao_aliquota: null,
+    });
+    const reduzido = criar({
+      id: "reduzido",
+      nbs: null,
+      cst: "200",
+      cclasstrib: "200029",
+      reducao_aliquota: "Redução de Alíquota: 60%",
+    });
+    const especifico = criar({
+      id: "especifico",
+      nbs: null,
+      cst: "820",
+      cclasstrib: "820007",
+      reducao_aliquota: null,
+    });
+
+    expect(classificarTratamentoAdicional(integral)).toBe("tributacao_integral");
+    expect(rotuloTratamentoAdicional(integral)).toContain("Tratamento padrão");
+
+    expect(classificarTratamentoAdicional(reduzido)).toBe("reducao");
+    expect(rotuloTratamentoAdicional(reduzido)).toContain("redução");
+
+    expect(classificarTratamentoAdicional(especifico)).toBe("regime_especifico");
+    expect(rotuloTratamentoAdicional(especifico)).toContain("Regime específico");
   });
 });
