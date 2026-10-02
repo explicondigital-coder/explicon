@@ -13,6 +13,8 @@ import { buscarCorrelacoes } from "@/lib/correlacoes.functions";
 import { useLocalList } from "@/hooks/useLocalList";
 import { LeadForm } from "@/components/LeadForm";
 
+const ITENS_POR_PAGINA = 10;
+
 const searchSchema = z.object({
   q: z.string().catch(""),
   pagina: z.number().int().min(1).catch(1),
@@ -49,13 +51,17 @@ function Busca() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["busca", q, pagina],
-    queryFn: () => buscarCorrelacoes({ data: { q, pagina, porPagina: 50 } }),
+    queryFn: () =>
+      buscarCorrelacoes({
+        data: { q, pagina, porPagina: ITENS_POR_PAGINA },
+      }),
     staleTime: 60_000,
   });
 
   const grupos = agruparPorItemLc(data?.registros ?? []);
-  const total = data?.total ?? 0;
-  const totalPaginas = Math.max(1, Math.ceil(total / 50));
+  const totalItens = data?.totalItens ?? data?.total ?? 0;
+  const totalRegistros = data?.totalRegistros ?? 0;
+  const totalPaginas = Math.max(1, Math.ceil(totalItens / ITENS_POR_PAGINA));
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -63,10 +69,18 @@ function Busca() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <SearchBar valorInicial={q} tamanho="compacto" />
 
-        <p className="mt-4 text-sm text-muted-foreground">
-          {isLoading ? "Consultando..." : `${total} registro(s) encontrado(s)`}
-          {q ? ` para “${q}”` : ""}
-        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          {isLoading ? (
+            <span>Consultando...</span>
+          ) : (
+            <>
+              <span>{totalRegistros} correlação(ões)</span>
+              <span aria-hidden="true">·</span>
+              <span>{totalItens} Item(ns) LC</span>
+              {q ? <span>para “{q}”</span> : null}
+            </>
+          )}
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center py-20">
@@ -80,7 +94,7 @@ function Busca() {
             </p>
           </div>
         ) : (
-          <div className="mt-6 space-y-5">
+          <div className="mt-6 space-y-8">
             {grupos.map((g, i) => (
               <ResultGroup
                 key={g.itemLc + i}
@@ -100,7 +114,7 @@ function Busca() {
         <LeadForm termoBuscado={q} className="mt-10" />
 
         {totalPaginas > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-3">
+          <nav className="mt-8 flex items-center justify-center gap-3" aria-label="Paginação">
             <Button asChild variant="outline" size="sm" disabled={pagina <= 1}>
               <Link to="/busca" search={{ q, pagina: Math.max(1, pagina - 1) }}>
                 Anterior
@@ -114,7 +128,7 @@ function Busca() {
                 Próxima
               </Link>
             </Button>
-          </div>
+          </nav>
         )}
       </main>
       <SiteFooter />
