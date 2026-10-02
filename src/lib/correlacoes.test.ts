@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   agruparPorItemLc,
+  classificarCodigoItem,
+  rotuloCodigoItem,
   separarCorrelacoesPorNbs,
   type Correlacao,
 } from "./correlacoes";
@@ -71,5 +73,16 @@ describe("Tax Link — organização fiscal dos resultados", () => {
     const separados = separarCorrelacoesPorNbs(registros);
     expect(separados.correlacoesPrincipais).toHaveLength(0);
     expect(separados.tratamentosAdicionais).toHaveLength(2);
+  });
+
+  test("classifica Item LC 116 e categorias internas 99.* sem misturar os conceitos", () => {
+    expect(classificarCodigoItem("17.19")).toBe("lc116");
+    expect(rotuloCodigoItem("17.19")).toBe("Item LC 116");
+
+    expect(classificarCodigoItem("99.03.02")).toBe("interno");
+    expect(rotuloCodigoItem("99.03.02")).toBe("Categoria interna Explicon");
+
+    expect(classificarCodigoItem("advocacia")).toBe("nao_padronizado");
+    expect(classificarCodigoItem(null)).toBe("ausente");
   });
 });
