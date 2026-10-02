@@ -78,12 +78,23 @@ export const sugerirCorrelacoes = createServerFn({ method: "GET" })
     if (data.q.trim().length < 2) return { sugestoes: [] };
     const { createPublicClient } = await import("./supabase-public.server");
     const supabase = createPublicClient();
-    const { data: rows, error } = await supabase.rpc("sugerir_correlacoes", {
+    const { data: rowsV2, error: errorV2 } = await supabase.rpc("sugerir_correlacoes_v2", {
       _q: data.q,
       _limit: 8,
     });
-    if (error) throw new Error(error.message);
-    return { sugestoes: rows ?? [] };
+
+    if (!errorV2) {
+      return { sugestoes: rowsV2 ?? [] };
+    }
+
+    // Fallback temporário para permitir implantação gradual caso a migration v2
+    // ainda não tenha sido aplicada.
+    const { data: rowsLegado, error: errorLegado } = await supabase.rpc("sugerir_correlacoes", {
+      _q: data.q,
+      _limit: 8,
+    });
+    if (errorLegado) throw new Error(errorLegado.message);
+    return { sugestoes: rowsLegado ?? [] };
   });
 
 export const obterItemLc = createServerFn({ method: "GET" })
