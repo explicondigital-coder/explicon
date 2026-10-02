@@ -70,7 +70,7 @@ export function AdvancedFilters({
 
       <div className="grid gap-4 border-t border-border px-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
         <label className="space-y-1 text-xs font-medium text-muted-foreground">
-          <span>Item LC 116</span>
+          <span>Item LC 116 / categoria interna</span>
           <select
             className={selectClass}
             value={local.item_lc}
@@ -162,9 +162,9 @@ export function AdvancedFilters({
           </select>
         </label>
 
-        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-3">
-          <Button type="button" onClick={aplicar}>Aplicar filtros</Button>
-          <Button type="button" variant="outline" onClick={limpar}>Limpar</Button>
+        <div className="flex flex-col items-stretch gap-2 sm:col-span-2 sm:flex-row sm:items-end lg:col-span-3">
+          <Button className="w-full sm:w-auto" type="button" onClick={aplicar}>Aplicar filtros</Button>
+          <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={limpar}>Limpar</Button>
         </div>
       </div>
     </details>
