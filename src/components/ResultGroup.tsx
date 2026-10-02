@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Eye, Star, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { itemLcParaSlug, separarCorrelacoesPorNbs, type Correlacao, type GrupoItemLc } from "@/lib/correlacoes";
+import { classificarCodigoItem, itemLcParaSlug, rotuloCodigoItem, separarCorrelacoesPorNbs, type Correlacao, type GrupoItemLc } from "@/lib/correlacoes";
 
 function valorOuNaoInformado(valor: string | null | undefined) {
   const normalizado = valor?.trim();
@@ -50,7 +50,7 @@ function CorrelacaoCard({
             NBS {valorOuNaoInformado(registro.nbs)}
           </Badge>
           <Badge className="bg-brand text-brand-foreground hover:bg-brand">
-            Item LC 116: {valorOuNaoInformado(registro.item_lc)}
+            {rotuloCodigoItem(registro.item_lc)}: {valorOuNaoInformado(registro.item_lc)}
           </Badge>
         </div>
 
@@ -154,8 +154,9 @@ export function ResultGroup({
   onFavoritar: (c: Correlacao) => void;
   favoritos: string[];
 }) {
-  const correlacoesPrincipais = grupo.registros.filter((registro) => Boolean(registro.nbs?.trim()));
-  const tratamentosAdicionais = grupo.registros.filter((registro) => !registro.nbs?.trim());
+  const { correlacoesPrincipais, tratamentosAdicionais } = separarCorrelacoesPorNbs(grupo.registros);
+  const tipoCodigo = classificarCodigoItem(grupo.itemLc);
+  const rotuloGrupo = rotuloCodigoItem(grupo.itemLc);
 
   return (
     <motion.section
@@ -168,7 +169,7 @@ export function ResultGroup({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="bg-brand text-brand-foreground hover:bg-brand">
-              Item LC {grupo.itemLc}
+              {rotuloGrupo} {grupo.itemLc}
             </Badge>
             <span className="text-xs text-muted-foreground">
               {correlacoesPrincipais.length} correlaç
@@ -180,10 +181,10 @@ export function ResultGroup({
           </h2>
         </div>
 
-        {grupo.itemLc !== "—" && (
+        {grupo.itemLc !== "—" && tipoCodigo !== "nao_padronizado" && (
           <Button asChild variant="outline" size="sm">
             <Link to="/item/$slug" params={{ slug: itemLcParaSlug(grupo.itemLc) }}>
-              Página do item
+              Página da classificação
               <ArrowUpRight className="size-4" />
             </Link>
           </Button>
