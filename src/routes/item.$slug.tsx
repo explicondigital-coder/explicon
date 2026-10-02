@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SiteHeader, SiteFooter } from "@/components/SiteHeader";
 import { ResultGroup } from "@/components/ResultGroup";
 import { DetailPanel } from "@/components/DetailPanel";
-import { agruparPorItemLc, rotuloCodigoItem, slugParaItemLc, type Correlacao } from "@/lib/correlacoes";
+import { agruparPorItemLc, classificarCodigoItem, rotuloCodigoItem, slugParaItemLc, type Correlacao } from "@/lib/correlacoes";
 import { obterItemLc } from "@/lib/correlacoes.functions";
 
 export const Route = createFileRoute("/item/$slug")({
@@ -16,6 +16,10 @@ export const Route = createFileRoute("/item/$slug")({
     const title = `${rotulo} ${itemLc} — ${descricao} | Explicon`;
     const description = `Classificação ${itemLc} (${descricao}) com NBS, INDOP, CST e cClassTrib no Explicon Tax Link.`;
     const canonical = `https://consulta.explicon.com.br/item/${params.slug}`;
+    const robots =
+      classificarCodigoItem(itemLc) === "lc116"
+        ? "index,follow,max-image-preview:large"
+        : "noindex,follow";
     return {
       meta: [
         { title },
@@ -25,7 +29,7 @@ export const Route = createFileRoute("/item/$slug")({
         { property: "og:type", content: "article" },
         { property: "og:url", content: canonical },
         { name: "twitter:card", content: "summary_large_image" },
-        { name: "robots", content: "index,follow,max-image-preview:large" },
+        { name: "robots", content: robots },
       ],
       links: [{ rel: "canonical", href: canonical }],
     };
@@ -54,9 +58,33 @@ function ItemLcPagina() {
   });
 
   const grupos = agruparPorItemLc(data?.registros ?? []);
+  const descricao = data?.registros?.[0]?.descricao_lc ?? "Classificação tributária";
+  const canonical = `https://consulta.explicon.com.br/item/${slug}`;
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Início",
+        item: "https://consulta.explicon.com.br/",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: `${rotuloCodigoItem(itemLc)} ${itemLc} — ${descricao}`,
+        item: canonical,
+      },
+    ],
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <SiteHeader />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <nav className="mb-4 text-sm text-muted-foreground">
