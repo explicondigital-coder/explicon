@@ -24,6 +24,11 @@ export interface GrupoItemLc {
   registros: Correlacao[];
 }
 
+export interface SeparacaoCorrelacoes {
+  correlacoesPrincipais: Correlacao[];
+  tratamentosAdicionais: Correlacao[];
+}
+
 export const ORDENACOES = [
   { value: "item_lc", label: "Item LC" },
   { value: "nbs", label: "NBS" },
@@ -50,6 +55,20 @@ export function agruparPorItemLc(registros: Correlacao[]): GrupoItemLc[] {
     }
   }
   return [...grupos.values()];
+}
+
+export function separarCorrelacoesPorNbs(registros: Correlacao[]): SeparacaoCorrelacoes {
+  return registros.reduce<SeparacaoCorrelacoes>(
+    (acc, registro) => {
+      if (registro.nbs?.trim()) {
+        acc.correlacoesPrincipais.push(registro);
+      } else {
+        acc.tratamentosAdicionais.push(registro);
+      }
+      return acc;
+    },
+    { correlacoesPrincipais: [], tratamentosAdicionais: [] },
+  );
 }
 
 export function correlacaoParaTexto(c: Correlacao): string {
