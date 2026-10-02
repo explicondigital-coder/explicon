@@ -23,7 +23,9 @@ function criar(parcial: Partial<Correlacao> & Pick<Correlacao, "id">): Correlaca
       parcial.nome_cclasstrib ?? "Prestação de serviços de profissões intelectuais",
     cst: parcial.cst ?? "200",
     descricao_cst: parcial.descricao_cst ?? "Alíquota reduzida em 30%",
-    reducao_aliquota: parcial.reducao_aliquota ?? "Redução de Alíquota: 30%",
+    reducao_aliquota: Object.prototype.hasOwnProperty.call(parcial, "reducao_aliquota")
+      ? parcial.reducao_aliquota ?? null
+      : "Redução de Alíquota: 30%",
     base_legal: parcial.base_legal ?? null,
     observacoes: parcial.observacoes ?? null,
     palavras_chave: parcial.palavras_chave ?? null,
