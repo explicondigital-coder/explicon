@@ -36,6 +36,15 @@ BEGIN
     RAISE EXCEPTION 'Falha: % divergências CST/cClassTrib.', v;
   END IF;
 
+  -- Prestação onerosa deve estar normalizada antes do deploy.
+  SELECT count(*) INTO v
+  FROM public.correlacoes
+  WHERE ps_onerosa IS NOT NULL
+    AND ps_onerosa NOT IN ('S','N');
+  IF v <> 0 THEN
+    RAISE EXCEPTION 'Falha: % valores inválidos em ps_onerosa.', v;
+  END IF;
+
   -- NBS válido quando presente
   SELECT count(*) INTO v
   FROM public.correlacoes
