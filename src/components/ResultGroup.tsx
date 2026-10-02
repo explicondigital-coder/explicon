@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Eye, Star, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { itemLcParaSlug, type Correlacao, type GrupoItemLc } from "@/lib/correlacoes";
+import { itemLcParaSlug, separarCorrelacoesPorNbs, type Correlacao, type GrupoItemLc } from "@/lib/correlacoes";
 
 function valorOuNaoInformado(valor: string | null | undefined) {
   const normalizado = valor?.trim();
