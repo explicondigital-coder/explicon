@@ -59,7 +59,8 @@ TO anon, authenticated, service_role;
 
 -- Depois que o frontend estiver usando a RPC:
 REVOKE INSERT ON public.leads FROM anon, authenticated;
+REVOKE SELECT ON public.leads FROM anon;
 DROP POLICY IF EXISTS "Visitantes podem enviar leads" ON public.leads;
 
 COMMENT ON FUNCTION public.enviar_lead_seguro(text,text,text,text)
-IS 'Recebe lead com validação e deduplicação de 15 minutos, sem permitir INSERT direto anônimo.';
+IS 'Recebe lead com validação e deduplicação de 15 minutos, sem permitir INSERT direto anônimo e sem grant SELECT para anon.';
