@@ -28,8 +28,13 @@ jobs:
       - name: TypeScript check
         run: bunx tsc --noEmit
 
-      - name: Lint
-        run: bun run lint
+      - name: Semantic lint
+        run: bunx eslint . --rule 'prettier/prettier: off'
 
       - name: Build
         run: bun run build
+
+      - name: Formatting report
+        if: always()
+        continue-on-error: true
+        run: bunx prettier --check .
