@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Eye, Star, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { classificarCodigoItem, itemLcParaSlug, rotuloCodigoItem, separarCorrelacoesPorNbs, type Correlacao, type GrupoItemLc } from "@/lib/correlacoes";
+import { classificarCodigoItem, itemLcParaSlug, rotuloCodigoItem, rotuloTratamentoAdicional, separarCorrelacoesPorNbs, type Correlacao, type GrupoItemLc } from "@/lib/correlacoes";
 
 function valorOuNaoInformado(valor: string | null | undefined) {
   const normalizado = valor?.trim();
@@ -115,7 +115,7 @@ function TratamentoAdicionalCard({
           <div className="flex items-center gap-2">
             <AlertTriangle className="size-4 shrink-0 text-brand" />
             <p className="text-sm font-semibold text-foreground">
-              Tratamento tributário adicional — verificar aplicabilidade
+              {rotuloTratamentoAdicional(registro)}
             </p>
           </div>
 
