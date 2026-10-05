@@ -14,44 +14,45 @@ const buscaSchema = z.object({
   porPagina: z.number().int().min(1).max(50).default(10),
 });
 
-type BuscaAgrupadaPayload = {
-  total_registros?: number;
-  total_itens?: number;
-  registros?: Correlacao[];
-};
+type CorrelacaoLegada = Correlacao & { total_count?: number | string | null };
 
+/**
+ * Performance note:
+ * enquanto as migrations v2 ainda não estiverem aplicadas no Supabase,
+ * use diretamente as RPCs legadas existentes. Isso evita uma chamada que
+ * sabemos que falhará antes de fazer fallback, reduzindo latência e ruído.
+ * Quando buscar_correlacoes_paginada_v2 / sugerir_correlacoes_v2 estiverem
+ * disponíveis, podemos reativar as versões v2 em uma mudança controlada.
+ */
 export const buscarCorrelacoes = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => buscaSchema.parse(input))
   .handler(async ({ data }) => {
     const { createPublicClient } = await import("./supabase-public.server");
     const supabase = createPublicClient();
-    const offsetItens = (data.pagina - 1) * data.porPagina;
+    const offset = (data.pagina - 1) * data.porPagina;
 
-    const args: Record<string, string | number> = {
+    const args: Record<string, string | number | null> = {
       _q: data.q,
+      _item_lc: data.item_lc,
+      _nbs: data.nbs,
+      _indop: data.indop,
+      _cclasstrib: data.cclasstrib,
+      _base_legal: data.base_legal,
       _ordenar: data.ordenar,
-      _limit_itens: data.porPagina,
-      _offset_itens: offsetItens,
+      _limit: data.porPagina,
+      _offset: offset,
     };
-    if (data.item_lc) args["_item_lc"] = data.item_lc;
-    if (data.nbs) args["_nbs"] = data.nbs;
-    if (data.indop) args["_indop"] = data.indop;
-    if (data.cclasstrib) args["_cclasstrib"] = data.cclasstrib;
-    if (data.base_legal) args["_base_legal"] = data.base_legal;
 
-    const { data: rpcData, error } = await supabase.rpc(
-      "buscar_correlacoes_paginada_v2",
+    const { data: rows, error } = await supabase.rpc(
+      "buscar_correlacoes",
       args as unknown as Record<string, never>,
     );
     if (error) throw new Error(error.message);
 
-    const payload = (rpcData ?? {}) as BuscaAgrupadaPayload;
-    const totalRegistros = Number(payload.total_registros ?? 0);
-    const totalItens = Number(payload.total_itens ?? 0);
-    const registros = Array.isArray(payload.registros) ? payload.registros : [];
+    const registrosLegados = (rows ?? []) as CorrelacaoLegada[];
+    const totalRegistros = Number(registrosLegados[0]?.total_count ?? registrosLegados.length);
+    const registros = registrosLegados.map(({ total_count: _totalCount, ...registro }) => registro);
 
-    // Registra apenas a primeira página de cada pesquisa para evitar duplicidade
-    // quando o usuário navega pelas páginas do mesmo termo.
     if (data.pagina === 1 && data.q.trim()) {
       const { error: logError } = await supabase.rpc("registrar_consulta", {
         _termo: data.q,
@@ -63,8 +64,10 @@ export const buscarCorrelacoes = createServerFn({ method: "GET" })
     }
 
     return {
-      total: totalItens,
-      totalItens,
+      total: totalRegistros,
+      // Temporariamente o legado pagina por registro, não por grupo Item LC.
+      // Após a migration v2, totalItens voltará a representar grupos completos.
+      totalItens: totalRegistros,
       totalRegistros,
       pagina: data.pagina,
       porPagina: data.porPagina,
@@ -78,23 +81,15 @@ export const sugerirCorrelacoes = createServerFn({ method: "GET" })
     if (data.q.trim().length < 2) return { sugestoes: [] };
     const { createPublicClient } = await import("./supabase-public.server");
     const supabase = createPublicClient();
-    const { data: rowsV2, error: errorV2 } = await supabase.rpc("sugerir_correlacoes_v2", {
+
+    // Usar diretamente a RPC existente enquanto a v2 não estiver migrada.
+    // Evita request falho + fallback a cada digitação.
+    const { data: rows, error } = await supabase.rpc("sugerir_correlacoes", {
       _q: data.q,
       _limit: 8,
     });
-
-    if (!errorV2) {
-      return { sugestoes: rowsV2 ?? [] };
-    }
-
-    // Fallback temporário para permitir implantação gradual caso a migration v2
-    // ainda não tenha sido aplicada.
-    const { data: rowsLegado, error: errorLegado } = await supabase.rpc("sugerir_correlacoes", {
-      _q: data.q,
-      _limit: 8,
-    });
-    if (errorLegado) throw new Error(errorLegado.message);
-    return { sugestoes: rowsLegado ?? [] };
+    if (error) throw new Error(error.message);
+    return { sugestoes: rows ?? [] };
   });
 
 export const obterItemLc = createServerFn({ method: "GET" })
@@ -135,7 +130,6 @@ type FiltroRow = {
   nbs: string | null;
   indop: string | null;
   cclasstrib: string | null;
-  base_legal: string | null;
 };
 
 type OpcoesFiltro = {
@@ -146,29 +140,40 @@ type OpcoesFiltro = {
   baseLegal: string[];
 };
 
-export const obterOpcoesFiltro = createServerFn({ method: "GET" }).handler(async (): Promise<OpcoesFiltro> => {
-  const { createPublicClient } = await import("./supabase-public.server");
-  const supabase = createPublicClient();
-  const { data, error } = await supabase
-    .from("correlacoes")
-    .select("item_lc,nbs,indop,cclasstrib,base_legal")
-    .limit(20000);
-  if (error) throw new Error(error.message);
+export const obterOpcoesFiltro = createServerFn({ method: "GET" }).handler(
+  async (): Promise<OpcoesFiltro> => {
+    const { createPublicClient } = await import("./supabase-public.server");
+    const supabase = createPublicClient();
 
-  const linhas = (data ?? []) as FiltroRow[];
-  const unicos = (chave: keyof FiltroRow): string[] =>
-    [...new Set(linhas.map((r) => r[chave]).filter((v): v is string => typeof v === "string" && v.length > 0))]
-      .sort()
-      .slice(0, 500);
+    // Base Legal permanece 100% vazia na base auditada. Não transportamos
+    // essa coluna até existirem dados legais validados.
+    const { data, error } = await supabase
+      .from("correlacoes")
+      .select("item_lc,nbs,indop,cclasstrib")
+      .limit(20000);
+    if (error) throw new Error(error.message);
 
-  return {
-    itensLc: unicos("item_lc"),
-    nbs: unicos("nbs"),
-    indop: unicos("indop"),
-    cclasstrib: unicos("cclasstrib"),
-    baseLegal: unicos("base_legal"),
-  };
-});
+    const linhas = (data ?? []) as FiltroRow[];
+    const unicos = (chave: keyof FiltroRow): string[] =>
+      [
+        ...new Set(
+          linhas
+            .map((r) => r[chave])
+            .filter((v): v is string => typeof v === "string" && v.length > 0),
+        ),
+      ]
+        .sort()
+        .slice(0, 500);
+
+    return {
+      itensLc: unicos("item_lc"),
+      nbs: unicos("nbs"),
+      indop: unicos("indop"),
+      cclasstrib: unicos("cclasstrib"),
+      baseLegal: [],
+    };
+  },
+);
 
 export const registrarConsulta = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
