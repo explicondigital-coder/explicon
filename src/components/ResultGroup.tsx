@@ -1,9 +1,20 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Eye, Star, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, Eye, Star, AlertTriangle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { classificarCodigoItem, itemLcParaSlug, rotuloCodigoItem, rotuloTratamentoAdicional, separarCorrelacoesPorNbs, type Correlacao, type GrupoItemLc } from "@/lib/correlacoes";
+import {
+  classificarCodigoItem,
+  itemLcParaSlug,
+  rotuloCodigoItem,
+  rotuloTratamentoAdicional,
+  separarCorrelacoesPorNbs,
+  type Correlacao,
+  type GrupoItemLc,
+} from "@/lib/correlacoes";
+
+const LIMITE_INICIAL_CARTOES = 12;
 
 function valorOuNaoInformado(valor: string | null | undefined) {
   const normalizado = valor?.trim();
@@ -24,7 +35,11 @@ function Campo({
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {rotulo}
       </p>
-      <p className={`break-words text-sm ${destaque ? "font-semibold text-foreground" : "text-foreground"}`}>
+      <p
+        className={`break-words text-sm ${
+          destaque ? "font-semibold text-foreground" : "text-foreground"
+        }`}
+      >
         {valorOuNaoInformado(valor)}
       </p>
     </div>
@@ -63,7 +78,12 @@ function CorrelacaoCard({
           >
             <Star className={`size-4 ${favorito ? "fill-brand text-brand" : ""}`} />
           </Button>
-          <Button className="flex-1 sm:flex-none" variant="secondary" size="sm" onClick={() => onVerDetalhes(registro)}>
+          <Button
+            className="flex-1 sm:flex-none"
+            variant="secondary"
+            size="sm"
+            onClick={() => onVerDetalhes(registro)}
+          >
             <Eye className="size-4" />
             Ver detalhes
           </Button>
@@ -122,7 +142,11 @@ function TratamentoAdicionalCard({
           <div className="grid gap-3 sm:grid-cols-2">
             {registro.descricao_nbs?.trim() ? (
               <div className="sm:col-span-2">
-                <Campo rotulo="Descrição / variante associada" valor={registro.descricao_nbs} destaque />
+                <Campo
+                  rotulo="Descrição / variante associada"
+                  valor={registro.descricao_nbs}
+                  destaque
+                />
               </div>
             ) : null}
             <Campo rotulo="CST" valor={registro.cst} destaque />
@@ -137,7 +161,12 @@ function TratamentoAdicionalCard({
           </p>
         </div>
 
-        <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => onVerDetalhes(registro)}>
+        <Button
+          className="w-full sm:w-auto"
+          variant="outline"
+          size="sm"
+          onClick={() => onVerDetalhes(registro)}
+        >
           <Eye className="size-4" />
           Ver detalhes
         </Button>
@@ -159,15 +188,21 @@ export function ResultGroup({
   onFavoritar: (c: Correlacao) => void;
   favoritos: string[];
 }) {
+  const [expandido, setExpandido] = useState(false);
   const { correlacoesPrincipais, tratamentosAdicionais } = separarCorrelacoesPorNbs(grupo.registros);
   const tipoCodigo = classificarCodigoItem(grupo.itemLc);
   const rotuloGrupo = rotuloCodigoItem(grupo.itemLc);
+
+  const correlacoesVisiveis = expandido
+    ? correlacoesPrincipais
+    : correlacoesPrincipais.slice(0, LIMITE_INICIAL_CARTOES);
+  const restantes = Math.max(0, correlacoesPrincipais.length - LIMITE_INICIAL_CARTOES);
 
   return (
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: Math.min(indice * 0.04, 0.24) }}
+      transition={{ duration: 0.2, delay: Math.min(indice * 0.025, 0.15) }}
       className="space-y-4"
     >
       <header className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-4 sm:px-5">
@@ -198,7 +233,7 @@ export function ResultGroup({
 
       {correlacoesPrincipais.length > 0 ? (
         <div className="space-y-4">
-          {correlacoesPrincipais.map((registro) => (
+          {correlacoesVisiveis.map((registro) => (
             <CorrelacaoCard
               key={registro.id}
               registro={registro}
@@ -207,6 +242,14 @@ export function ResultGroup({
               favorito={favoritos.includes(registro.id)}
             />
           ))}
+          {restantes > 0 && (
+            <div className="flex justify-center pt-1">
+              <Button variant="outline" size="sm" onClick={() => setExpandido((v) => !v)}>
+                <ChevronDown className={`size-4 transition-transform ${expandido ? "rotate-180" : ""}`} />
+                {expandido ? "Mostrar menos" : `Mostrar mais ${restantes} correlações`}
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
