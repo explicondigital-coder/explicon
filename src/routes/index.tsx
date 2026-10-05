@@ -1,10 +1,13 @@
+import { lazy, Suspense } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
 import { SiteHeader, SiteFooter } from "@/components/SiteHeader";
 import { Badge } from "@/components/ui/badge";
-import { LeadForm } from "@/components/LeadForm";
+
+const LeadForm = lazy(() =>
+  import("@/components/LeadForm").then((module) => ({ default: module.LeadForm })),
+);
 
 const SUGESTOES = [
   "Fisioterapia",
@@ -62,12 +65,7 @@ function Home() {
       />
       <SiteHeader />
       <main className="flex flex-1 items-center justify-center px-4 py-16 sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="w-full max-w-3xl text-center"
-        >
+        <div className="w-full max-w-3xl text-center">
           <Badge variant="outline" className="mb-6 border-brand/40 text-xs">
             Reforma tributária · IBS · CBS
           </Badge>
@@ -107,10 +105,12 @@ function Home() {
           >
             Ver todas as correlações <ArrowRight className="size-4" />
           </Link>
-        </motion.div>
+        </div>
       </main>
       <div className="mx-auto w-full max-w-4xl px-4 pb-16 sm:px-6">
-        <LeadForm />
+        <Suspense fallback={<div className="h-52" aria-hidden="true" />}>
+          <LeadForm />
+        </Suspense>
       </div>
       <SiteFooter />
     </div>
