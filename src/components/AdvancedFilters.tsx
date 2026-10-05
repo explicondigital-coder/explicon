@@ -24,11 +24,15 @@ export function AdvancedFilters({
 }) {
   const navigate = useNavigate();
   const [local, setLocal] = useState<FiltrosBusca>(valores);
+  const [aberto, setAberto] = useState(false);
+  const [jaAbriu, setJaAbriu] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["opcoes-filtros"],
     queryFn: () => obterOpcoesFiltro(),
-    staleTime: 10 * 60_000,
+    enabled: jaAbriu,
+    staleTime: 60 * 60_000,
+    gcTime: 2 * 60 * 60_000,
   });
 
   function aplicar() {
@@ -62,7 +66,15 @@ export function AdvancedFilters({
     "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-brand";
 
   return (
-    <details className="mt-4 rounded-xl border border-border bg-card">
+    <details
+      open={aberto}
+      onToggle={(event) => {
+        const proximo = event.currentTarget.open;
+        setAberto(proximo);
+        if (proximo) setJaAbriu(true);
+      }}
+      className="mt-4 rounded-xl border border-border bg-card"
+    >
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-foreground">
         <SlidersHorizontal className="size-4 text-brand" />
         Filtros avançados
@@ -124,21 +136,6 @@ export function AdvancedFilters({
           >
             <option value="">Todos</option>
             {(data?.cclasstrib ?? []).map((valor) => (
-              <option key={valor} value={valor}>{valor}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="space-y-1 text-xs font-medium text-muted-foreground">
-          <span>Base Legal</span>
-          <select
-            className={selectClass}
-            value={local.base_legal}
-            disabled={isLoading}
-            onChange={(e) => setLocal((v) => ({ ...v, base_legal: e.target.value }))}
-          >
-            <option value="">Todas</option>
-            {(data?.baseLegal ?? []).map((valor) => (
               <option key={valor} value={valor}>{valor}</option>
             ))}
           </select>
