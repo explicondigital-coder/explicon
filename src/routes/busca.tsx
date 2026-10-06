@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { SearchBar } from "@/components/SearchBar";
 import { AdvancedFilters } from "@/components/AdvancedFilters";
@@ -67,7 +67,7 @@ function Busca() {
   const [painelAberto, setPainelAberto] = useState(false);
   const favoritos = useLocalList<Correlacao>("explicon-favoritos", 50);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       "busca",
       q,
@@ -94,6 +94,7 @@ function Busca() {
         },
       }),
     staleTime: 60_000,
+    retry: 1,
   });
 
   const grupos = agruparPorItemLc(data?.registros ?? []);
@@ -129,6 +130,8 @@ function Busca() {
         <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
           {isLoading ? (
             <span>Consultando...</span>
+          ) : isError ? (
+            <span>Não foi possível concluir a consulta.</span>
           ) : (
             <>
               <span>{totalRegistros} correlação(ões)</span>
@@ -148,6 +151,22 @@ function Busca() {
         {isLoading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="size-6 animate-spin text-brand" />
+          </div>
+        ) : isError ? (
+          <div className="mt-12 rounded-2xl border border-destructive/40 bg-destructive/5 p-8 text-center">
+            <AlertTriangle className="mx-auto size-6 text-destructive" />
+            <p className="mt-3 font-medium text-foreground">Falha ao consultar a base tributária</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              A consulta não retornou uma resposta válida. Isso é diferente de não haver resultados.
+            </p>
+            {error instanceof Error && error.message ? (
+              <p className="mx-auto mt-2 max-w-2xl break-words text-xs text-muted-foreground">
+                Detalhe técnico: {error.message}
+              </p>
+            ) : null}
+            <Button className="mt-4" type="button" variant="outline" onClick={() => refetch()}>
+              Tentar novamente
+            </Button>
           </div>
         ) : grupos.length === 0 ? (
           <div className="mt-12 rounded-2xl border border-dashed border-border p-10 text-center">
@@ -176,7 +195,7 @@ function Busca() {
 
         <LeadForm termoBuscado={q} className="mt-10" />
 
-        {totalPaginas > 1 && (
+        {!isError && totalPaginas > 1 && (
           <nav className="mt-8 flex items-center justify-center gap-3" aria-label="Paginação">
             <Button asChild variant="outline" size="sm" disabled={pagina <= 1}>
               <Link
